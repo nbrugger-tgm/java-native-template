@@ -1,0 +1,23 @@
+
+Set<File> findLibNatives(String projectName){
+    return files(
+            project(projectName).layout.buildDirectory
+                    .dir("lib").get()
+                    .asFileTree
+                    .filter((File f) -> f.isFile()))
+                    .files
+}
+
+void addToResources(String project){
+    sourceSets.main.resources.srcDirs(
+            findLibNatives(":native")
+                    .stream()
+                    .map(f -> f.getParent())
+                    .toArray(String[]::new)
+    )
+}
+configure(dependencies){
+    ext {
+        natives = this::addToResources
+    }
+}
