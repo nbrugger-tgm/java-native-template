@@ -1,0 +1,96 @@
+import java.util.function.Consumer
+import com.niton.build.NativeMode
+import com.niton.build.NativeMode
+
+plugins {
+    id 'java'
+}
+
+interface NativesConfig {
+    Property<NativeMode> getMode()
+    Property<Boolean> getDontInclude()
+}
+project.extensions.create('natives', NativesConfig)
+natives.dontInclude = false
+natives.mode = NativeMode.JNI
+FileCollection findLibNatives(String projectName){
+    Directory libDir = project(projectName).layout.buildDirectory.dir("lib").get()
+    FileTree tree = libDir.asFileTree
+    return files(tree.filter((File f) -> f.isFile()))
+}
+void processVariant(File f){
+    var arch = f.parentFile.name
+    var os = f.parentFile.parentFile.name
+    addVariant(os,arch,f)
+}
+void addVariant(os,arch,lib){
+    if(natives.dontInclude.get()){
+        addCopyLibTask(os,arch,lib)
+        return
+    }
+    switch (natives.mode.get()){
+        case NativeMode.JNA:
+            addJNAlib(os,arch,lib)
+            break
+        case NativeMode.JNI:
+            addJNIlib(os,arch,lib)
+            break
+        case NativeMode.JNR:
+            addJNRlib(os,arch,lib)
+            break
+        default:
+            logging.error("ERR: No mode found ${tasks.processNatives.config.getMode()} for $os-$arch-${lib.name}")
+            break
+    }
+}
+void addIncludeLibTask(File lib,folder){
+    tasks.processResources.finalizedBy(
+        tasks.create("add${lib.name.split("\\.")[0]}", ProcessResources) {
+            from(lib.parent)
+            include(lib.name)
+            into("$destinationDir/$folder")
+            dependsOn processResources
+        }
+    )
+}
+void addCopyLibTask(os,arch,lib){
+    tasks.processResources.finalizedBy(
+        tasks.create("copy${lib.name.split("\\.")[0]}", Copy) {
+            from(lib.parent)
+            include(lib.name)
+            into("${project.buildDir}/natives/$os-$arch")
+            dependsOn processResources
+        }
+    )
+}
+void addJNAlib(String os,String arch,File lib){
+    addIncludeLibTask(lib,"$os-$arch")
+}
+void addJNIlib(String os,String arch,File lib){
+    addIncludeLibTask(lib,"NATIVE/${arch}/${os}")
+}
+void addJNRlib(String os,String arch,File lib){
+    logger.error("Cant package JNR libs into jar: JNR doesnt supports natives in Jar files so the libs cant be shipped")
+}
+void addToResources(String projectName){
+    FileCollection variants = findLibNatives(projectName);
+    variants.forEach(file -> {
+        processVariant(file)
+    })
+}
+
+jar {
+    properties.put("jna.library.path","pwd")//TODO:
+}
+
+
+void addNativeDependency(Project p){
+    evaluationDependsOn(p.getPath())
+    processResources.dependsOn p.tasks.assemble
+    addToResources(p.getPath())
+}
+configure(dependencies) {
+    ext {
+        natives = this::addNativeDependency
+    }
+}

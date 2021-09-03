@@ -1,20 +1,23 @@
-import javax.annotation.Nullable
+import com.niton.build.NativeMode
 
 plugins {
+    id 'java'
     id 'application' //change this to 'java-library' if it is a library
-    id 'natives'
+    id 'java-natives'
 }
 repositories {
     mavenCentral()
 }
-evaluationDependsOn(":native")
 dependencies {
     implementation project(":core")
-    natives ":native"
+    natives project(":native")
     // Use JUnit Jupiter for testing.
     testImplementation 'org.junit.jupiter:junit-jupiter:5.7.1'
     // This dependency is used by the application.
     implementation 'com.google.guava:guava:30.1-jre'
+}
+natives {
+    mode = NativeMode.JNA
 }
 
 application {
