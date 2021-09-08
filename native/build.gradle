@@ -13,6 +13,15 @@ plugins {
     // Apply the cpp-unit-test plugin to add support for building and running C++ test executables
     id 'cpp-unit-test'
 }
+task printToolChains {
+    group "help"
+    description "prints the names of the toolchains for each target"
+    doFirst {
+        tasks.withType(CppCompile).forEach{
+            println(it.name+" -> "+it.toolChain.get())
+        }
+    }
+}
 
 library {
     // Set the target operating system and architecture for this library

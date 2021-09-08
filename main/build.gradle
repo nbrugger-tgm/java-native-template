@@ -1,16 +1,16 @@
-import com.niton.build.NativeMode
+import com.niton.gradle.plugin.natives.NativeMode
 
 plugins {
     id 'java'
     id 'application' //change this to 'java-library' if it is a library
-    id 'java-natives'
+    id 'java-native'
 }
 repositories {
     mavenCentral()
 }
 dependencies {
     implementation project(":core")
-    natives project(":native")
+    //nativeLib project(":native")
     // Use JUnit Jupiter for testing.
     testImplementation 'org.junit.jupiter:junit-jupiter:5.7.1'
     // This dependency is used by the application.
